@@ -88,7 +88,6 @@ def escape(msg: str) -> str:
 
 
 async def send_message_to_group(msg: str):
-    return
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
 
     payload = {
@@ -113,7 +112,7 @@ def token_stonks_to_msg(token: str, price: float, percent: float) -> str:
 
 
 async def setup_trend(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    context.job_queue.run_once(check_trend_for_group, when=0, data=0)
+    context.job_queue.run_once(check_trend_for_group, when=1, data=0)
 
 
 async def check_trend_for_group(context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -128,13 +127,15 @@ async def check_trend_for_group(context: ContextTypes.DEFAULT_TYPE) -> None:
     price_2, percent1h_2 = await get_token_price(token_2)
     msg2 = token_stonks_to_msg(token_2, price_2, percent1h_2)
 
-    msg3 = f'1 {token_1} \\= {price_1/price_2:.0f} {token_2}'
+    msg3 = f'1 {token_1} \\= {price_1/price_2:.1f} {token_2}'
 
-    if abs(percent1h_1) >= 5 or abs(percent1h_2) >=5 or count % 48 == 0:
+    checks_in_day = 48
+
+    if abs(percent1h_1) >= 5 or abs(percent1h_2) >=5 or count % checks_in_day == 0:
         await send_message_to_group('\n\n'.join((msg1, msg2, msg3)))
 
     count += 1
-    context.job_queue.run_once(check_trend_for_group, when=30 * 60, data=count)
+    context.job_queue.run_once(check_trend_for_group, when=(60 * 60 * 24) / checks_in_day, data=count)
 
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
