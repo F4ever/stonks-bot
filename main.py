@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 from xml.sax.saxutils import escape
@@ -113,11 +112,12 @@ def token_stonks_to_msg(token: str, price: float, percent: float) -> str:
     return msg
 
 
-async def setup_trend_for_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if context.job is None:
-        count = 0
-    else:
-        count = context.job.data
+async def setup_trend(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    context.job_queue.run_once(check_trend_for_group, when=0, data=0)
+
+
+async def check_trend_for_group(context: ContextTypes.DEFAULT_TYPE) -> None:
+    count = context.job.data
 
     # TODO: dry
     token_1, token_2 = 'ETH', 'LDO'
@@ -134,7 +134,7 @@ async def setup_trend_for_group(update: Update, context: ContextTypes.DEFAULT_TY
         await send_message_to_group('\n\n'.join((msg1, msg2, msg3)))
 
     count += 1
-    context.job_queue.run_once(setup_trend_for_group, when=30*60, data=count)
+    context.job_queue.run_once(check_trend_for_group, when=30 * 60, data=count)
 
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
@@ -142,7 +142,7 @@ def main():
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CommandHandler("stonks", show_stonk))
 
-    application.add_handler(CommandHandler("group_trend", setup_trend_for_group))
+    application.add_handler(CommandHandler("trend", setup_trend))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
