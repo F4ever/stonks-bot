@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "stonks"
+version = "0.1.0"
+description = ""
+authors = ["F4ever <raman.s@lido.fi>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+python-telegram-bot = {extras = ["job-queue"], version = "^21.10"}
+aiohttp = "^3.11.12"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
