@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.12"
 python-telegram-bot = {extras = ["job-queue"], version = "^21.10"}
 aiohttp = "^3.11.12"
+requests = "^2.32.5"
 
 
 [build-system]
