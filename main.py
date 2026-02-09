@@ -3,8 +3,9 @@ import logging
 from xml.sax.saxutils import escape
 
 import aiohttp
+import requests
 
-from env import BOT_TOKEN, CHAT_ID, CMC_PRO_API_KEY
+from env import BOT_TOKEN, CHAT_ID, CMC_PRO_API_KEY, ADDRESS
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -137,6 +138,26 @@ async def check_trend_for_group(context: ContextTypes.DEFAULT_TYPE) -> None:
     count += 1
     context.job_queue.run_once(check_trend_for_group, when=(60 * 60 * 24) / checks_in_day, data=count)
 
+async def check_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    res = requests.get(f'https://indexer.dydx.trade/v4/addresses/{ADDRESS}').json()
+    balance = res['subaccounts'][0]
+
+    total_sur_plus = sum(int(float(position['unrealizedPnl'])) for position in balance['openPerpetualPositions'].values())
+
+    msg = f'''Balance: ${round(float(balance['equity']), 2)}
+Free collateral: ${round(float(balance['freeCollateral']), 2)}
+Total sur{'plus' if total_sur_plus > 0 else 'minus'}: {'💰' * len(str(total_sur_plus)) if total_sur_plus > 0 else '😭'} ${round(float(total_sur_plus), 2)}
+'''
+    for position in balance['openPerpetualPositions'].values():
+        msg += f'''
+{position['market']}
+size: {'🟢' if position['side'] == 'LONG' else '🔴'}{position['side']}-{position['size']}
+entry price: ${round(float(position['entryPrice']), 2)}
+unrealizedPnl: {'💰' if float(position['unrealizedPnl']) > 0 else '💔'}${round(float(position['unrealizedPnl']),2 )}
+'''
+    await update.message.reply_text(escape(msg), parse_mode='MarkdownV2')
+
+
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
 
@@ -144,6 +165,7 @@ def main():
     application.add_handler(CommandHandler("stonks", show_stonk))
 
     application.add_handler(CommandHandler("trend", setup_trend))
+    application.add_handler(CommandHandler("balance", check_balance))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
